@@ -192,7 +192,7 @@ class HybridVNDetectContoursRequest: HybridVNDetectContoursRequestSpec {
     set { request.contrastAdjustment = Float(newValue) }
   }
 
-  var constrastPivot: Double? {
+  var contrastPivot: Double? {
     get { request.contrastPivot.map { Double(truncating: $0) } }
     set { request.contrastPivot = newValue.map { NSNumber(value: $0) } }
   }

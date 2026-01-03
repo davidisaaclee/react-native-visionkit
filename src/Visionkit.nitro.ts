@@ -62,7 +62,7 @@ export interface VNDetectContoursRequestFactory
 
 export interface VNDetectContoursRequest extends VNImageBasedRequest {
   contrastAdjustment: number;
-  constrastPivot?: number;
+  contrastPivot?: number;
   detectsDarkOnLight: boolean;
   /** https://developer.apple.com/documentation/vision/vndetectcontoursrequest/maximumimagedimension */
   maximumImageDimension: number;
