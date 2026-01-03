@@ -15,6 +15,10 @@ const VNDetectContoursRequestFactory =
   NitroModules.createHybridObject<spec.VNDetectContoursRequestFactory>(
     'VNDetectContoursRequestFactory'
   );
+const VNGenerateObjectnessBasedSaliencyImageRequestFactory =
+  NitroModules.createHybridObject<spec.VNGenerateObjectnessBasedSaliencyImageRequestFactory>(
+    'VNGenerateObjectnessBasedSaliencyImageRequestFactory'
+  );
 
 function constructorFactory<
   T extends object,
@@ -53,16 +57,26 @@ export const VNDetectContoursRequest = constructorFactory<
   { construct: [] }
 >(() => VNDetectContoursRequestFactory.create());
 
+export const VNGenerateObjectnessBasedSaliencyImageRequest = constructorFactory<
+  spec.VNGenerateObjectnessBasedSaliencyImageRequest,
+  { construct: [] }
+>(() => VNGenerateObjectnessBasedSaliencyImageRequestFactory.create());
+
 export type CIImage = spec.CIImage;
 export type VNGenerateForegroundInstanceMaskRequest =
   spec.VNGenerateForegroundInstanceMaskRequest;
 export type VNImageRequestHandler = spec.VNImageRequestHandler;
 export type VNDetectContoursRequest = spec.VNDetectContoursRequest;
+export type VNGenerateObjectnessBasedSaliencyImageRequest =
+  spec.VNGenerateObjectnessBasedSaliencyImageRequest;
 
 export type {
+  CGRect,
   CVPixelBuffer,
   VNContour,
   VNContoursObservation,
+  VNDetectedObjectObservation,
   VNImageBasedRequest,
   VNInstanceMaskObservation,
+  VNSaliencyImageObservation,
 } from './Visionkit.nitro';

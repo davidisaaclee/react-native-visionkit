@@ -102,6 +102,38 @@ extension HybridVNContoursObservation: VNObservationBacked {
   var backingObservation: VNObservation { value }
 }
 
+class HybridVNDetectedObjectObservation: HybridVNDetectedObjectObservationSpec {
+  var value: VNDetectedObjectObservation!
+  static func from(_ value: VNDetectedObjectObservation) -> HybridVNDetectedObjectObservation {
+    let out = HybridVNDetectedObjectObservation()
+    out.value = value
+    return out
+  }
+  
+  var boundingBox: CGRect { convert(value.boundingBox) }
+}
+extension HybridVNDetectedObjectObservation: HybridVNObservationSpec_protocol {}
+extension HybridVNDetectedObjectObservation: VNObservationBacked {
+  var backingObservation: VNObservation { value }
+}
+
+class HybridVNSaliencyImageObservation: HybridVNSaliencyImageObservationSpec {
+  var value: VNSaliencyImageObservation!
+  static func from(_ value: VNSaliencyImageObservation) -> HybridVNSaliencyImageObservation {
+    let out = HybridVNSaliencyImageObservation()
+    out.value = value
+    return out
+  }
+  
+  var salientObjects: [any HybridVNDetectedObjectObservationSpec]? {
+    value.salientObjects?.map { HybridVNDetectedObjectObservation.from($0) }
+  }
+}
+extension HybridVNSaliencyImageObservation: HybridVNObservationSpec_protocol {}
+extension HybridVNSaliencyImageObservation: VNObservationBacked {
+  var backingObservation: VNObservation { value }
+}
+
 // MARK: Requests
 
 class HybridVNDetectContoursRequest: HybridVNDetectContoursRequestSpec {
@@ -130,11 +162,6 @@ class HybridVNDetectContoursRequest: HybridVNDetectContoursRequestSpec {
   var results: [any HybridVNContoursObservationSpec]? {
     request.results?.map { HybridVNContoursObservation.from($0) }
   }
-  
-  var prefersBackgroundProcessing: Bool {
-    get { request.preferBackgroundProcessing }
-    set { request.preferBackgroundProcessing = newValue }
-  }
 }
 extension HybridVNDetectContoursRequest: HybridVNImageBasedRequestSpec_protocol {}
 extension HybridVNDetectContoursRequest: VNImageBasedRequestBacked {
@@ -144,17 +171,24 @@ extension HybridVNDetectContoursRequest: VNImageBasedRequestBacked {
 class HybridVNGenerateForegroundInstanceMaskRequest: HybridVNGenerateForegroundInstanceMaskRequestSpec {
   let request = VNGenerateForegroundInstanceMaskRequest()
   
-  var prefersBackgroundProcessing: Bool {
-    get { request.preferBackgroundProcessing }
-    set { request.preferBackgroundProcessing = newValue }
-  }
-
   var results: [any HybridVNInstanceMaskObservationSpec]? {
     request.results?.map { HybridVNInstanceMaskObservation.from($0) }
   }
 }
 extension HybridVNGenerateForegroundInstanceMaskRequest: HybridVNImageBasedRequestSpec_protocol {}
 extension HybridVNGenerateForegroundInstanceMaskRequest: VNImageBasedRequestBacked {
+  var backingRequest: VNImageBasedRequest { request }
+}
+
+class HybridVNGenerateObjectnessBasedSaliencyImageRequest: HybridVNGenerateObjectnessBasedSaliencyImageRequestSpec {
+  let request = VNGenerateObjectnessBasedSaliencyImageRequest()
+  
+  var results: [any HybridVNSaliencyImageObservationSpec]? {
+    request.results?.map { HybridVNSaliencyImageObservation.from($0) }
+  }
+}
+extension HybridVNGenerateObjectnessBasedSaliencyImageRequest: HybridVNImageBasedRequestSpec_protocol {}
+extension HybridVNGenerateObjectnessBasedSaliencyImageRequest: VNImageBasedRequestBacked {
   var backingRequest: VNImageBasedRequest { request }
 }
 
@@ -175,6 +209,12 @@ class HybridVNImageRequestHandlerFactory: HybridVNImageRequestHandlerFactorySpec
 class HybridVNGenerateForegroundInstanceMaskRequestFactory: HybridVNGenerateForegroundInstanceMaskRequestFactorySpec {
   func create() throws -> any HybridVNGenerateForegroundInstanceMaskRequestSpec {
     HybridVNGenerateForegroundInstanceMaskRequest()
+  }
+}
+
+class HybridVNGenerateObjectnessBasedSaliencyImageRequestFactory: HybridVNGenerateObjectnessBasedSaliencyImageRequestFactorySpec {
+  func create() throws -> any HybridVNGenerateObjectnessBasedSaliencyImageRequestSpec {
+    HybridVNGenerateObjectnessBasedSaliencyImageRequest()
   }
 }
 

@@ -67,6 +67,21 @@ export interface VNContoursObservation
   contourAt(index: number): VNContour;
 }
 
+export interface VNDetectedObjectObservation
+  extends HybridObject<{ ios: 'swift' }>,
+    VNObservation {
+  readonly boundingBox: CGRect;
+}
+
+export interface VNSaliencyImageObservation
+  extends HybridObject<{ ios: 'swift' }>,
+    VNObservation {
+  // NB: In Apple code, this returns a subclass of
+  // `VNDetectedObjectObservation` - afaict, that doesn't add anything
+  // useful, so we can safely use the base class here for simplicity.
+  readonly salientObjects?: VNDetectedObjectObservation[];
+}
+
 // --- VNRequests --- //
 
 export interface VNImageBasedRequest extends HybridObject<{ ios: 'swift' }> {
@@ -88,12 +103,12 @@ export interface VNDetectContoursRequest extends VNImageBasedRequest {
   readonly results?: VNContoursObservation[];
 }
 
-// --- Factories --- //
-
-export interface VNGenerateForegroundInstanceMaskRequestFactory
-  extends HybridObject<{ ios: 'swift' }> {
-  create(): VNGenerateForegroundInstanceMaskRequest;
+export interface VNGenerateObjectnessBasedSaliencyImageRequest
+  extends VNImageBasedRequest {
+  readonly results?: VNSaliencyImageObservation[];
 }
+
+// --- Factories --- //
 
 export interface CIImageFactory extends HybridObject<{ ios: 'swift' }> {
   createFromFile(path: string): CIImage;
@@ -104,7 +119,17 @@ export interface VNImageRequestHandlerFactory
   createWithCIImage(ciImage: CIImage): VNImageRequestHandler;
 }
 
+export interface VNGenerateForegroundInstanceMaskRequestFactory
+  extends HybridObject<{ ios: 'swift' }> {
+  create(): VNGenerateForegroundInstanceMaskRequest;
+}
+
 export interface VNDetectContoursRequestFactory
   extends HybridObject<{ ios: 'swift' }> {
   create(): VNDetectContoursRequest;
+}
+
+export interface VNGenerateObjectnessBasedSaliencyImageRequestFactory
+  extends HybridObject<{ ios: 'swift' }> {
+  create(): VNGenerateObjectnessBasedSaliencyImageRequest;
 }

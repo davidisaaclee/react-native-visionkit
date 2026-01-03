@@ -43,6 +43,18 @@
     },
     "VNContour": {
       "swift": "HybridVNContour"
+    },
+    "VNDetectedObjectObservation": {
+      "swift": "HybridVNDetectedObjectObservation"
+    },
+    "VNSaliencyImageObservation": {
+      "swift": "HybridVNSaliencyImageObservation"
+    },
+    "VNGenerateObjectnessBasedSaliencyImageRequestFactory": {
+      "swift": "HybridVNGenerateObjectnessBasedSaliencyImageRequestFactory"
+    },
+    "VNGenerateObjectnessBasedSaliencyImageRequest": {
+      "swift": "HybridVNGenerateObjectnessBasedSaliencyImageRequest"
     }
   },
   "ignorePaths": ["node_modules"]
