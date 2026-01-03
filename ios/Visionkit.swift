@@ -18,13 +18,11 @@ class HybridCIImage: HybridCIImageSpec {
 
   static func from(_ image: CIImage) -> HybridCIImage {
     let out = HybridCIImage()
-    out.initialize(image: image)
+    out.image = image
     return out
   }
-
-  fileprivate func initialize(image: CIImage) {
-    self.image = image
-  }
+  
+  var extent: CGRect { convert(image.extent) }
 
   func writePngToFile(path: String) throws {
     let context = CIContext()

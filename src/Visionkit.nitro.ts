@@ -8,6 +8,7 @@ export interface CGRect {
 }
 
 export interface CIImage extends HybridObject<{ ios: 'swift' }> {
+  readonly extent: CGRect;
   writePngToFile(path: string): void;
 }
 
