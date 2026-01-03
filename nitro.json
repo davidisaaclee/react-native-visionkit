@@ -1,0 +1,17 @@
+{
+  "cxxNamespace": ["visionkit"],
+  "ios": {
+    "iosModuleName": "Visionkit"
+  },
+  "android": {
+    "androidNamespace": ["visionkit"],
+    "androidCxxLibName": "visionkit"
+  },
+  "autolinking": {
+    "Visionkit": {
+      "swift": "Visionkit",
+      "kotlin": "Visionkit"
+    }
+  },
+  "ignorePaths": ["node_modules"]
+}
