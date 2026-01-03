@@ -19,6 +19,18 @@
     },
     "VNInstanceMaskObservation": {
       "swift": "HybridVNInstanceMaskObservation"
+    },
+    "VNGenerateForegroundInstanceMaskRequestFactory": {
+      "swift": "HybridVNGenerateForegroundInstanceMaskRequestFactory"
+    },
+    "VNGenerateForegroundInstanceMaskRequest": {
+      "swift": "HybridVNGenerateForegroundInstanceMaskRequest"
+    },
+    "VNImageRequestHandlerFactory": {
+      "swift": "HybridVNImageRequestHandlerFactory"
+    },
+    "VNImageRequestHandler": {
+      "swift": "HybridVNImageRequestHandler"
     }
   },
   "ignorePaths": ["node_modules"]

@@ -18,28 +18,42 @@ export default function App() {
 
       await promise;
 
-      const ciImage = VK.CIImageFactory.createFromFile(FILE_PATH);
+      let start = Date.now();
+      const ciImage = VK.CIImage.createFromFile(FILE_PATH);
       const ciImageOutput = fs.TemporaryDirectoryPath + 'ciImage.png';
-      // ciImage.writePngToFile(ciImageOutput);
-      // setFromCIImage(ciImageOutput);
 
-      ciImage.generateForegroundMasks().then((masks) => {
-        console.log('mask count:', masks.length);
-        console.log(
-          'allInstances',
-          masks.map((m) => m.allInstances)
-        );
+      console.log(Date.now() - start, 'Create CIImage');
+      start = Date.now();
 
-        const mask = masks.at(0);
-        if (mask) {
-          mask
-            .generateMaskForInstances(mask.allInstances)
-            .toCIImage()
-            .writePngToFile(ciImageOutput);
-          console.log('Wrote mask to ', ciImageOutput);
-          setFromCIImage(ciImageOutput);
-        }
-      });
+      const req = VK.VNGenerateForegroundInstanceMaskRequest.create();
+      const handler = VK.VNImageRequestHandler.createWithCIImage(ciImage);
+
+      console.log(Date.now() - start, 'Create handler');
+      start = Date.now();
+
+      handler.perform([req]);
+      const masks = req.results;
+      if (masks == null) {
+        console.log('No masks generated');
+        return;
+      }
+
+      console.log('mask count:', masks.length);
+      console.log(
+        'allInstances',
+        masks.map((m) => m.allInstances)
+      );
+      console.log(Date.now() - start, 'Generate mask');
+
+      const mask = masks.at(0);
+      if (mask) {
+        mask
+          .generateMaskForInstances(mask.allInstances)
+          .toCIImage()
+          .writePngToFile(ciImageOutput);
+        setFromCIImage(ciImageOutput);
+        console.log('wrote mask to file');
+      }
     })();
   }, []);
 

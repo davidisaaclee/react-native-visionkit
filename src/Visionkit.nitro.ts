@@ -2,7 +2,6 @@ import type { HybridObject } from 'react-native-nitro-modules';
 
 export interface CIImage extends HybridObject<{ ios: 'swift' }> {
   writePngToFile(path: string): void;
-  generateForegroundMasks(): Promise<VNInstanceMaskObservation[]>;
 }
 
 export interface CIImageFactory extends HybridObject<{ ios: 'swift' }> {
@@ -21,4 +20,23 @@ export interface VNInstanceMaskObservation
   readonly instanceMask: CVPixelBuffer;
   readonly allInstances: number[];
   generateMaskForInstances(instanceIds: number[]): CVPixelBuffer;
+}
+
+export interface VNGenerateForegroundInstanceMaskRequestFactory
+  extends HybridObject<{ ios: 'swift' }> {
+  create(): VNGenerateForegroundInstanceMaskRequest;
+}
+
+export interface VNGenerateForegroundInstanceMaskRequest
+  extends HybridObject<{ ios: 'swift' }> {
+  readonly results?: VNInstanceMaskObservation[];
+}
+
+export interface VNImageRequestHandlerFactory
+  extends HybridObject<{ ios: 'swift' }> {
+  createWithCIImage(ciImage: CIImage): VNImageRequestHandler;
+}
+
+export interface VNImageRequestHandler extends HybridObject<{ ios: 'swift' }> {
+  perform(requests: VNGenerateForegroundInstanceMaskRequest[]): void;
 }

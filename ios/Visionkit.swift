@@ -14,7 +14,7 @@ class HybridCIImageFactory: HybridCIImageFactorySpec {
 }
 
 class HybridCIImage: HybridCIImageSpec {
-  private var image: CIImage!
+  fileprivate var image: CIImage!
   
   static func from(_ image: CIImage) -> HybridCIImage {
     let out = HybridCIImage()
@@ -43,33 +43,10 @@ class HybridCIImage: HybridCIImageSpec {
       colorSpace: colorSpace
     )
   }
-  
-  func generateForegroundMasks() throws -> Promise<[any HybridVNInstanceMaskObservationSpec]> {
-    return Promise.async {
-      let results = try self._generateForegroundMasks()
-      return results.map { obs in
-        let out = HybridVNInstanceMaskObservation()
-        out.initialize(value: obs)
-        return out
-      }
-    }
-  }
-  
-  private func _generateForegroundMasks() throws -> [VNInstanceMaskObservation] {
-    let req = VNGenerateForegroundInstanceMaskRequest()
-    let requestHandler = VNImageRequestHandler(ciImage: image)
-    try requestHandler.perform([req])
-    
-    guard let results = req.results else {
-      return []
-    }
-    
-    return results
-  }
 }
 
 class HybridCVPixelBuffer: HybridCVPixelBufferSpec {
-  private var buffer: CVPixelBuffer!
+  fileprivate var buffer: CVPixelBuffer!
   
   static func from(_ buffer: CVPixelBuffer) -> HybridCVPixelBuffer {
     let out = HybridCVPixelBuffer()
@@ -126,7 +103,7 @@ class HybridCVPixelBuffer: HybridCVPixelBufferSpec {
 }
 
 class HybridVNInstanceMaskObservation: HybridVNInstanceMaskObservationSpec {
-  private var value: VNInstanceMaskObservation!
+  fileprivate var value: VNInstanceMaskObservation!
   
   static func from(_ value: VNInstanceMaskObservation) -> HybridVNInstanceMaskObservation {
     let out = HybridVNInstanceMaskObservation()
@@ -149,5 +126,39 @@ class HybridVNInstanceMaskObservation: HybridVNInstanceMaskObservationSpec {
   func generateMaskForInstances(instanceIds: [Double]) throws -> any HybridCVPixelBufferSpec {
     let mask = try value.generateMask(forInstances: IndexSet(instanceIds.map { Int($0) }))
     return HybridCVPixelBuffer.from(mask)
+  }
+}
+
+class HybridVNGenerateForegroundInstanceMaskRequestFactory: HybridVNGenerateForegroundInstanceMaskRequestFactorySpec {
+  func create() throws -> any HybridVNGenerateForegroundInstanceMaskRequestSpec {
+    HybridVNGenerateForegroundInstanceMaskRequest()
+  }
+}
+
+class HybridVNGenerateForegroundInstanceMaskRequest: HybridVNGenerateForegroundInstanceMaskRequestSpec {
+  fileprivate let request = VNGenerateForegroundInstanceMaskRequest()
+  
+  var results: [any HybridVNInstanceMaskObservationSpec]? {
+    request.results?.map { HybridVNInstanceMaskObservation.from($0) }
+  }
+}
+
+class HybridVNImageRequestHandlerFactory: HybridVNImageRequestHandlerFactorySpec {
+  func createWithCIImage(ciImage: any HybridCIImageSpec) throws -> any HybridVNImageRequestHandlerSpec {
+    HybridVNImageRequestHandler.from(VNImageRequestHandler(ciImage: (ciImage as! HybridCIImage).image))
+  }
+}
+
+class HybridVNImageRequestHandler: HybridVNImageRequestHandlerSpec {
+  fileprivate var value: VNImageRequestHandler!
+  
+  static func from(_ value: VNImageRequestHandler) -> HybridVNImageRequestHandler {
+    let out = HybridVNImageRequestHandler()
+    out.value = value
+    return out
+  }
+  
+  func perform(requests: [any HybridVNGenerateForegroundInstanceMaskRequestSpec]) throws {
+    try value.perform((requests as! [HybridVNGenerateForegroundInstanceMaskRequest]).map(\.request))
   }
 }
