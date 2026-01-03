@@ -72,7 +72,7 @@ class HybridVNInstanceMaskObservation: HybridVNInstanceMaskObservationSpec {
     )
   }
 }
-
+extension HybridVNInstanceMaskObservation: HybridVNObservationSpec_protocol {}
 extension HybridVNInstanceMaskObservation: VNObservationBacked {
   var backingObservation: VNObservation { value }
 }
@@ -97,7 +97,7 @@ class HybridVNContoursObservation: HybridVNContoursObservationSpec {
     HybridVNContour.from(try value.contour(at: Int(index)))
   }
 }
-
+extension HybridVNContoursObservation: HybridVNObservationSpec_protocol {}
 extension HybridVNContoursObservation: VNObservationBacked {
   var backingObservation: VNObservation { value }
 }
@@ -136,6 +136,7 @@ class HybridVNDetectContoursRequest: HybridVNDetectContoursRequestSpec {
     set { request.preferBackgroundProcessing = newValue }
   }
 }
+extension HybridVNDetectContoursRequest: HybridVNImageBasedRequestSpec_protocol {}
 extension HybridVNDetectContoursRequest: VNImageBasedRequestBacked {
   var backingRequest: VNImageBasedRequest { request }
 }
@@ -152,6 +153,7 @@ class HybridVNGenerateForegroundInstanceMaskRequest: HybridVNGenerateForegroundI
     request.results?.map { HybridVNInstanceMaskObservation.from($0) }
   }
 }
+extension HybridVNGenerateForegroundInstanceMaskRequest: HybridVNImageBasedRequestSpec_protocol {}
 extension HybridVNGenerateForegroundInstanceMaskRequest: VNImageBasedRequestBacked {
   var backingRequest: VNImageBasedRequest { request }
 }
@@ -178,16 +180,22 @@ class HybridVNGenerateForegroundInstanceMaskRequestFactory: HybridVNGenerateFore
 
 // MARK: Helpers
 
+/**
+ `VNObservation` type does not produce a protocol in Nitrogen generation – this should mirror the TypeScript `interface VNObservation`.
+ This is only for convenience – if the types don't match, the type checker should complain that the various `VNObservation` types are missing members.
+ */
+protocol HybridVNObservationSpec_protocol {
+  var confidence: Double { get }
+}
+
 protocol VNImageBasedRequestBacked {
   var backingRequest: VNImageBasedRequest { get }
 }
-
 extension HybridVNImageBasedRequestSpec_protocol where Self: VNImageBasedRequestBacked {
   var regionOfInterest: CGRect {
     get { convert(backingRequest.regionOfInterest) }
     set { backingRequest.regionOfInterest = convert(newValue) }
   }
-  
   var prefersBackgroundProcessing: Bool {
     get { backingRequest.preferBackgroundProcessing }
     set { backingRequest.preferBackgroundProcessing = newValue }
@@ -197,7 +205,6 @@ extension HybridVNImageBasedRequestSpec_protocol where Self: VNImageBasedRequest
 protocol VNObservationBacked {
   var backingObservation: VNObservation { get }
 }
-
 extension HybridVNObservationSpec_protocol where Self: VNObservationBacked {
   var confidence: Double { Double(backingObservation.confidence) }
 }

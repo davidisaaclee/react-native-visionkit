@@ -46,18 +46,22 @@ export interface VNContour extends HybridObject<{ ios: 'swift' }> {
 
 // --- VNObservations --- //
 
-export interface VNObservation extends HybridObject<{ ios: 'swift' }> {
+export interface VNObservation {
   readonly confidence: number;
 }
 
-export interface VNInstanceMaskObservation extends VNObservation {
+export interface VNInstanceMaskObservation
+  extends HybridObject<{ ios: 'swift' }>,
+    VNObservation {
   readonly instanceMask: CVPixelBuffer;
   readonly allInstances: number[];
   generateMaskForInstances(instanceIds: number[]): CVPixelBuffer;
   generateMaskedImage(opts: GenerateMaskedImageOptions): CVPixelBuffer;
 }
 
-export interface VNContoursObservation extends VNObservation {
+export interface VNContoursObservation
+  extends HybridObject<{ ios: 'swift' }>,
+    VNObservation {
   readonly topLevelContours: VNContour[];
   readonly contourCount: number;
   contourAt(index: number): VNContour;
