@@ -1,6 +1,45 @@
 import Vision
 import NitroModules
 
+class HybridVNImageRequestHandler: HybridVNImageRequestHandlerSpec {
+  var value: VNImageRequestHandler!
+
+  static func from(_ value: VNImageRequestHandler) -> HybridVNImageRequestHandler {
+    let out = HybridVNImageRequestHandler()
+    out.value = value
+    return out
+  }
+  
+  func perform(requests: [any HybridVNImageBasedRequestSpec]) throws {
+    try value.perform(
+      requests.compactMap { ($0 as? VNImageBasedRequestBacked)?.backingRequest }
+    )
+  }
+}
+
+class HybridVNContour: HybridVNContourSpec {
+  var value: VNContour!
+  static func from(_ value: VNContour) -> HybridVNContour {
+    let out = HybridVNContour()
+    out.value = value
+    return out
+  }
+
+  var pointCount: Double {
+    Double(value.pointCount)
+  }
+
+  var normalizedPointsFlat: [Double] {
+    value.normalizedPoints.flatMap { [Double($0.x), Double($0.y)] }
+  }
+
+  func polygonApproximation(epsilon: Double) throws -> any HybridVNContourSpec {
+    HybridVNContour.from(try value.polygonApproximation(epsilon: Float(epsilon)))
+  }
+}
+
+// MARK: Observations
+
 class HybridVNInstanceMaskObservation: HybridVNInstanceMaskObservationSpec {
   var value: VNInstanceMaskObservation!
 
@@ -36,63 +75,30 @@ class HybridVNInstanceMaskObservation: HybridVNInstanceMaskObservationSpec {
   }
 }
 
-class HybridVNGenerateForegroundInstanceMaskRequestFactory: HybridVNGenerateForegroundInstanceMaskRequestFactorySpec {
-  func create() throws -> any HybridVNGenerateForegroundInstanceMaskRequestSpec {
-    HybridVNGenerateForegroundInstanceMaskRequest()
-  }
-}
-
-class HybridVNGenerateForegroundInstanceMaskRequest: HybridVNGenerateForegroundInstanceMaskRequestSpec {
-  let request = VNGenerateForegroundInstanceMaskRequest()
-
-  var regionOfInterest: CGRect {
-    get { convert(request.regionOfInterest) }
-    set { request.regionOfInterest = convert(newValue) }
-  }
-  
-  var prefersBackgroundProcessing: Bool {
-    get { request.preferBackgroundProcessing }
-    set { request.preferBackgroundProcessing = newValue }
-  }
-
-  var results: [any HybridVNInstanceMaskObservationSpec]? {
-    request.results?.map { HybridVNInstanceMaskObservation.from($0) }
-  }
-}
-
-class HybridVNImageRequestHandlerFactory: HybridVNImageRequestHandlerFactorySpec {
-  func createWithCIImage(ciImage: any HybridCIImageSpec) throws -> any HybridVNImageRequestHandlerSpec {
-    HybridVNImageRequestHandler.from(VNImageRequestHandler(ciImage: (ciImage as! HybridCIImage).image))
-  }
-}
-
-class HybridVNImageRequestHandler: HybridVNImageRequestHandlerSpec {
-  var value: VNImageRequestHandler!
-
-  static func from(_ value: VNImageRequestHandler) -> HybridVNImageRequestHandler {
-    let out = HybridVNImageRequestHandler()
+class HybridVNContoursObservation: HybridVNContoursObservationSpec {
+  var value: VNContoursObservation!
+  static func from(_ value: VNContoursObservation) -> HybridVNContoursObservation {
+    let out = HybridVNContoursObservation()
     out.value = value
     return out
   }
-  
-  func perform(requests: [any HybridVNImageBasedRequestSpec]) throws {
-    try value.perform(requests.compactMap { req in
-      if let req = req as? HybridVNDetectContoursRequest {
-        return req.request
-      } else if let req = req as? HybridVNGenerateForegroundInstanceMaskRequest {
-        return req.request
-      } else {
-        return nil
-      }
-    })
+
+  var topLevelContours: [any HybridVNContourSpec] {
+    value.topLevelContours.map { HybridVNContour.from($0) }
   }
+
+  var contourCount: Double {
+    Double(value.contourCount)
+  }
+
+  func contourAt(index: Double) throws -> any HybridVNContourSpec {
+    HybridVNContour.from(try value.contour(at: Int(index)))
+  }
+
+  var confidence: Double { Double(value.confidence) }
 }
 
-class HybridVNDetectContoursRequestFactory: HybridVNDetectContoursRequestFactorySpec {
-  func create() throws -> any HybridVNDetectContoursRequestSpec {
-    HybridVNDetectContoursRequest()
-  }
-}
+// MARK: Requests
 
 class HybridVNDetectContoursRequest: HybridVNDetectContoursRequestSpec {
   let request = VNDetectContoursRequest()
@@ -120,58 +126,61 @@ class HybridVNDetectContoursRequest: HybridVNDetectContoursRequestSpec {
   var results: [any HybridVNContoursObservationSpec]? {
     request.results?.map { HybridVNContoursObservation.from($0) }
   }
-
-  var regionOfInterest: CGRect {
-    get { convert(request.regionOfInterest) }
-    set { request.regionOfInterest = convert(newValue) }
-  }
   
   var prefersBackgroundProcessing: Bool {
     get { request.preferBackgroundProcessing }
     set { request.preferBackgroundProcessing = newValue }
   }
 }
-
-class HybridVNContoursObservation: HybridVNContoursObservationSpec {
-  var value: VNContoursObservation!
-  static func from(_ value: VNContoursObservation) -> HybridVNContoursObservation {
-    let out = HybridVNContoursObservation()
-    out.value = value
-    return out
-  }
-
-  var topLevelContours: [any HybridVNContourSpec] {
-    value.topLevelContours.map { HybridVNContour.from($0) }
-  }
-
-  var contourCount: Double {
-    Double(value.contourCount)
-  }
-
-  func contourAt(index: Double) throws -> any HybridVNContourSpec {
-    HybridVNContour.from(try value.contour(at: Int(index)))
-  }
-
-  var confidence: Double { Double(value.confidence) }
+extension HybridVNDetectContoursRequest: VNImageBasedRequestBacked {
+  var backingRequest: VNImageBasedRequest { request }
 }
 
-class HybridVNContour: HybridVNContourSpec {
-  var value: VNContour!
-  static func from(_ value: VNContour) -> HybridVNContour {
-    let out = HybridVNContour()
-    out.value = value
-    return out
+class HybridVNGenerateForegroundInstanceMaskRequest: HybridVNGenerateForegroundInstanceMaskRequestSpec {
+  let request = VNGenerateForegroundInstanceMaskRequest()
+  
+  var prefersBackgroundProcessing: Bool {
+    get { request.preferBackgroundProcessing }
+    set { request.preferBackgroundProcessing = newValue }
   }
 
-  var pointCount: Double {
-    Double(value.pointCount)
+  var results: [any HybridVNInstanceMaskObservationSpec]? {
+    request.results?.map { HybridVNInstanceMaskObservation.from($0) }
   }
+}
+extension HybridVNGenerateForegroundInstanceMaskRequest: VNImageBasedRequestBacked {
+  var backingRequest: VNImageBasedRequest { request }
+}
 
-  var normalizedPointsFlat: [Double] {
-    value.normalizedPoints.flatMap { [Double($0.x), Double($0.y)] }
+// MARK: Factories
+
+class HybridVNDetectContoursRequestFactory: HybridVNDetectContoursRequestFactorySpec {
+  func create() throws -> any HybridVNDetectContoursRequestSpec {
+    HybridVNDetectContoursRequest()
   }
+}
 
-  func polygonApproximation(epsilon: Double) throws -> any HybridVNContourSpec {
-    HybridVNContour.from(try value.polygonApproximation(epsilon: Float(epsilon)))
+class HybridVNImageRequestHandlerFactory: HybridVNImageRequestHandlerFactorySpec {
+  func createWithCIImage(ciImage: any HybridCIImageSpec) throws -> any HybridVNImageRequestHandlerSpec {
+    HybridVNImageRequestHandler.from(VNImageRequestHandler(ciImage: (ciImage as! HybridCIImage).image))
+  }
+}
+
+class HybridVNGenerateForegroundInstanceMaskRequestFactory: HybridVNGenerateForegroundInstanceMaskRequestFactorySpec {
+  func create() throws -> any HybridVNGenerateForegroundInstanceMaskRequestSpec {
+    HybridVNGenerateForegroundInstanceMaskRequest()
+  }
+}
+
+// MARK: Helpers
+
+protocol VNImageBasedRequestBacked {
+  var backingRequest: VNImageBasedRequest { get }
+}
+
+extension HybridVNImageBasedRequestSpec_protocol where Self: VNImageBasedRequestBacked {
+  var regionOfInterest: CGRect {
+    get { convert(backingRequest.regionOfInterest) }
+    set { backingRequest.regionOfInterest = convert(newValue) }
   }
 }
