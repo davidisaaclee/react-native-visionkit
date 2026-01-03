@@ -49,8 +49,6 @@ class HybridVNInstanceMaskObservation: HybridVNInstanceMaskObservationSpec {
     return out
   }
 
-  var confidence: Double { Double(value.confidence) }
-
   var instanceMask: any HybridCVPixelBufferSpec {
     HybridCVPixelBuffer.from(value.instanceMask)
   }
@@ -75,6 +73,10 @@ class HybridVNInstanceMaskObservation: HybridVNInstanceMaskObservationSpec {
   }
 }
 
+extension HybridVNInstanceMaskObservation: VNObservationBacked {
+  var backingObservation: VNObservation { value }
+}
+
 class HybridVNContoursObservation: HybridVNContoursObservationSpec {
   var value: VNContoursObservation!
   static func from(_ value: VNContoursObservation) -> HybridVNContoursObservation {
@@ -94,8 +96,10 @@ class HybridVNContoursObservation: HybridVNContoursObservationSpec {
   func contourAt(index: Double) throws -> any HybridVNContourSpec {
     HybridVNContour.from(try value.contour(at: Int(index)))
   }
+}
 
-  var confidence: Double { Double(value.confidence) }
+extension HybridVNContoursObservation: VNObservationBacked {
+  var backingObservation: VNObservation { value }
 }
 
 // MARK: Requests
@@ -183,4 +187,12 @@ extension HybridVNImageBasedRequestSpec_protocol where Self: VNImageBasedRequest
     get { convert(backingRequest.regionOfInterest) }
     set { backingRequest.regionOfInterest = convert(newValue) }
   }
+}
+
+protocol VNObservationBacked {
+  var backingObservation: VNObservation { get }
+}
+
+extension HybridVNObservationSpec_protocol where Self: VNObservationBacked {
+  var confidence: Double { Double(backingObservation.confidence) }
 }
