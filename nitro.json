@@ -55,6 +55,12 @@
     },
     "VNGenerateObjectnessBasedSaliencyImageRequest": {
       "swift": "HybridVNGenerateObjectnessBasedSaliencyImageRequest"
+    },
+    "VNGenerateAttentionBasedSaliencyImageRequestFactory": {
+      "swift": "HybridVNGenerateAttentionBasedSaliencyImageRequestFactory"
+    },
+    "VNGenerateAttentionBasedSaliencyImageRequest": {
+      "swift": "HybridVNGenerateAttentionBasedSaliencyImageRequest"
     }
   },
   "ignorePaths": ["node_modules"]

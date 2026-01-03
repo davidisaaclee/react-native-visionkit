@@ -192,6 +192,18 @@ extension HybridVNGenerateObjectnessBasedSaliencyImageRequest: VNImageBasedReque
   var backingRequest: VNImageBasedRequest { request }
 }
 
+class HybridVNGenerateAttentionBasedSaliencyImageRequest: HybridVNGenerateAttentionBasedSaliencyImageRequestSpec {
+  let request = VNGenerateAttentionBasedSaliencyImageRequest()
+  
+  var results: [any HybridVNSaliencyImageObservationSpec]? {
+    request.results?.map { HybridVNSaliencyImageObservation.from($0) }
+  }
+}
+extension HybridVNGenerateAttentionBasedSaliencyImageRequest: HybridVNImageBasedRequestSpec_protocol {}
+extension HybridVNGenerateAttentionBasedSaliencyImageRequest: VNImageBasedRequestBacked {
+  var backingRequest: VNImageBasedRequest { request }
+}
+
 // MARK: Factories
 
 class HybridVNDetectContoursRequestFactory: HybridVNDetectContoursRequestFactorySpec {
@@ -215,6 +227,12 @@ class HybridVNGenerateForegroundInstanceMaskRequestFactory: HybridVNGenerateFore
 class HybridVNGenerateObjectnessBasedSaliencyImageRequestFactory: HybridVNGenerateObjectnessBasedSaliencyImageRequestFactorySpec {
   func create() throws -> any HybridVNGenerateObjectnessBasedSaliencyImageRequestSpec {
     HybridVNGenerateObjectnessBasedSaliencyImageRequest()
+  }
+}
+
+class HybridVNGenerateAttentionBasedSaliencyImageRequestFactory: HybridVNGenerateAttentionBasedSaliencyImageRequestFactorySpec {
+  func create() throws -> any HybridVNGenerateAttentionBasedSaliencyImageRequestSpec {
+    HybridVNGenerateAttentionBasedSaliencyImageRequest()
   }
 }
 

@@ -19,6 +19,10 @@ const VNGenerateObjectnessBasedSaliencyImageRequestFactory =
   NitroModules.createHybridObject<spec.VNGenerateObjectnessBasedSaliencyImageRequestFactory>(
     'VNGenerateObjectnessBasedSaliencyImageRequestFactory'
   );
+const VNGenerateAttentionBasedSaliencyImageRequestFactory =
+  NitroModules.createHybridObject<spec.VNGenerateAttentionBasedSaliencyImageRequestFactory>(
+    'VNGenerateAttentionBasedSaliencyImageRequestFactory'
+  );
 
 function constructorFactory<
   T extends object,
@@ -62,6 +66,11 @@ export const VNGenerateObjectnessBasedSaliencyImageRequest = constructorFactory<
   { construct: [] }
 >(() => VNGenerateObjectnessBasedSaliencyImageRequestFactory.create());
 
+export const VNGenerateAttentionBasedSaliencyImageRequest = constructorFactory<
+  spec.VNGenerateAttentionBasedSaliencyImageRequest,
+  { construct: [] }
+>(() => VNGenerateAttentionBasedSaliencyImageRequestFactory.create());
+
 export type CIImage = spec.CIImage;
 export type VNGenerateForegroundInstanceMaskRequest =
   spec.VNGenerateForegroundInstanceMaskRequest;
@@ -69,6 +78,8 @@ export type VNImageRequestHandler = spec.VNImageRequestHandler;
 export type VNDetectContoursRequest = spec.VNDetectContoursRequest;
 export type VNGenerateObjectnessBasedSaliencyImageRequest =
   spec.VNGenerateObjectnessBasedSaliencyImageRequest;
+export type VNGenerateAttentionBasedSaliencyImageRequest =
+  spec.VNGenerateAttentionBasedSaliencyImageRequest;
 
 export type {
   CGRect,

@@ -108,6 +108,11 @@ export interface VNGenerateObjectnessBasedSaliencyImageRequest
   readonly results?: VNSaliencyImageObservation[];
 }
 
+export interface VNGenerateAttentionBasedSaliencyImageRequest
+  extends VNImageBasedRequest {
+  readonly results?: VNSaliencyImageObservation[];
+}
+
 // --- Factories --- //
 
 export interface CIImageFactory extends HybridObject<{ ios: 'swift' }> {
@@ -132,4 +137,9 @@ export interface VNDetectContoursRequestFactory
 export interface VNGenerateObjectnessBasedSaliencyImageRequestFactory
   extends HybridObject<{ ios: 'swift' }> {
   create(): VNGenerateObjectnessBasedSaliencyImageRequest;
+}
+
+export interface VNGenerateAttentionBasedSaliencyImageRequestFactory
+  extends HybridObject<{ ios: 'swift' }> {
+  create(): VNGenerateAttentionBasedSaliencyImageRequest;
 }
