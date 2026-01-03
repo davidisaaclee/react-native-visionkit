@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import { View, StyleSheet, Image, Button, Dimensions } from 'react-native';
 import * as fs from 'react-native-fs';
 import * as VK from 'react-native-visionkit';
@@ -53,14 +53,13 @@ export default function App() {
     const basePath = newTmpPath();
     await writeAssetToFile(targetAsset, basePath);
 
-    const baseImage = VK.CIImageFactory.createFromFile(basePath);
+    const baseImage = new VK.CIImage(basePath);
 
-    const contoursReq = VK.VNDetectContoursRequestFactory.create();
+    const contoursReq = new VK.VNDetectContoursRequest();
     contoursReq.contrastAdjustment = 2.0;
     // contoursReq.detectsDarkOnLight = false;
 
-    const contoursHandler =
-      VK.VNImageRequestHandlerFactory.createWithCIImage(baseImage);
+    const contoursHandler = new VK.VNImageRequestHandler(baseImage);
     contoursHandler.perform([contoursReq]);
     const contourResult = contoursReq.results?.at(0);
     if (contourResult == null) {
@@ -76,11 +75,13 @@ export default function App() {
     const basePath = newTmpPath();
     await writeAssetToFile(targetAsset, basePath);
 
-    const base = VK.CIImageFactory.createFromFile(basePath);
+    console.log('Create CIImage');
+    const base = new VK.CIImage(basePath);
+    console.log('Created');
 
     // Generate foreground masks
-    const maskReq = VK.VNGenerateForegroundInstanceMaskRequestFactory.create();
-    const handler = VK.VNImageRequestHandlerFactory.createWithCIImage(base);
+    const maskReq = new VK.VNGenerateForegroundInstanceMaskRequest();
+    const handler = new VK.VNImageRequestHandler(base);
     handler.perform([maskReq]);
 
     const masks = maskReq.results;
@@ -111,14 +112,14 @@ export default function App() {
 
     console.log('Detecting mask contours...');
 
-    const ciImage = VK.CIImageFactory.createFromFile(basePath);
+    const ciImage = new VK.CIImage(basePath);
     const baseImagePath = newTmpPath();
     ciImage.writePngToFile(baseImagePath);
     // setFromCIImage(baseImagePath);
 
     // Generate foreground masks
-    const maskReq = VK.VNGenerateForegroundInstanceMaskRequestFactory.create();
-    const handler = VK.VNImageRequestHandlerFactory.createWithCIImage(ciImage);
+    const maskReq = new VK.VNGenerateForegroundInstanceMaskRequest();
+    const handler = new VK.VNImageRequestHandler(ciImage);
     handler.perform([maskReq]);
 
     const masks = maskReq.results;
@@ -138,14 +139,13 @@ export default function App() {
     setImageSet([maskPath]);
 
     const allPaths: string[] = [];
-    const contourReq = VK.VNDetectContoursRequestFactory.create();
+    const contourReq = new VK.VNDetectContoursRequest();
     // contourReq.maximumImageDimension = 9999999999;
     // contourReq.contrastAdjustment = 1.0;
     // contourReq.detectsDarkOnLight = true;
     // contourReq.detectsDarkOnLight = false;
 
-    const contourHandler =
-      VK.VNImageRequestHandlerFactory.createWithCIImage(maskImage);
+    const contourHandler = new VK.VNImageRequestHandler(maskImage);
     contourHandler.perform([contourReq]);
 
     if (contourReq.results) {
