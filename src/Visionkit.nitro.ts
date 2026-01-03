@@ -66,6 +66,7 @@ export interface VNContoursObservation extends VNObservation {
 // --- VNRequests --- //
 
 export interface VNImageBasedRequest extends HybridObject<{ ios: 'swift' }> {
+  prefersBackgroundProcessing: boolean;
   regionOfInterest: CGRect;
 }
 

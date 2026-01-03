@@ -187,6 +187,11 @@ extension HybridVNImageBasedRequestSpec_protocol where Self: VNImageBasedRequest
     get { convert(backingRequest.regionOfInterest) }
     set { backingRequest.regionOfInterest = convert(newValue) }
   }
+  
+  var prefersBackgroundProcessing: Bool {
+    get { backingRequest.preferBackgroundProcessing }
+    set { backingRequest.preferBackgroundProcessing = newValue }
+  }
 }
 
 protocol VNObservationBacked {
