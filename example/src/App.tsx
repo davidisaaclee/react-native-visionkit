@@ -6,8 +6,8 @@ import { Canvas, Path, Skia } from '@shopify/react-native-skia';
 import Slider from '@react-native-community/slider';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const targetAsset = require('./gnome.jpg');
-// const targetAsset = require('./game-mag.png');
+// const targetAsset = require('./gnome.jpg');
+const targetAsset = require('./symbols.png');
 
 function newTmpPath(): string {
   return fs.TemporaryDirectoryPath + `/img_${Date.now()}.png`;
@@ -84,7 +84,11 @@ export default function App() {
     );
   };
 
-  const generateMasks = async () => {
+  const generateMasks = async (
+    regionsOfInterest?: Array<VK.CGRect | undefined>
+  ) => {
+    const rois = regionsOfInterest ?? [undefined];
+
     const basePath = newTmpPath();
     await writeAssetToFile(targetAsset, basePath);
 
@@ -92,31 +96,42 @@ export default function App() {
     const base = new VK.CIImage(basePath);
     console.log('Created');
 
-    // Generate foreground masks
-    const maskReq = new VK.VNGenerateForegroundInstanceMaskRequest();
-    const handler = new VK.VNImageRequestHandler(base);
-    handler.perform([maskReq]);
+    const nextImageSet: string[] = [];
+    for (const roi of rois) {
+      // Generate foreground masks
+      const maskReq = new VK.VNGenerateForegroundInstanceMaskRequest();
+      if (roi) {
+        maskReq.regionOfInterest = roi;
+      }
+      const handler = new VK.VNImageRequestHandler(base);
+      handler.perform([maskReq]);
 
-    const masks = maskReq.results;
-    if (!masks || masks.length === 0) {
-      console.log('No masks generated');
-      return;
+      const masks = maskReq.results;
+      if (!masks || masks.length === 0) {
+        console.log('No masks generated');
+        return;
+      }
+      console.log('Generated masks:', masks.length);
+
+      const mask = masks.at(0)!;
+      console.log('mask instances:', mask.allInstances);
+
+      const maskImages: string[] = [];
+      for (const id of mask.allInstances) {
+        const maskPath = newTmpPath();
+        const maskBuffer = mask.generateMaskForInstances([id]);
+        maskBuffer.toCIImage().writePngToFile(maskPath);
+        maskImages.push(maskPath);
+      }
+      imageHandlerRef.current = handler;
+
+      // TODO: this only sets the last mask observation if multiple ROIs are used
+      setMaskObservation(mask);
+      nextImageSet.push(...maskImages);
     }
-    console.log('Generated masks:', masks.length);
 
-    const mask = masks.at(0)!;
-    console.log('mask instances:', mask.allInstances);
-
-    const maskImages: string[] = [];
-    for (const id of mask.allInstances) {
-      const maskPath = newTmpPath();
-      const maskBuffer = mask.generateMaskForInstances([id]);
-      maskBuffer.toCIImage().writePngToFile(maskPath);
-      maskImages.push(maskPath);
-    }
-    imageHandlerRef.current = handler;
-    setMaskObservation(mask);
-    setImageSet(maskImages);
+    console.log('Generated', nextImageSet.length, 'mask images');
+    setImageSet(nextImageSet);
   };
 
   const detectMaskContours = async () => {
@@ -184,6 +199,8 @@ export default function App() {
     const basePath = newTmpPath();
     await writeAssetToFile(targetAsset, basePath);
 
+    setImageSet([basePath]);
+
     console.log('Detecting object rects...');
     const start = Date.now();
 
@@ -194,6 +211,14 @@ export default function App() {
     handler.perform([request]);
 
     console.log(Date.now() - start, 'Object rect detection');
+
+    console.log(
+      'Request results:',
+      request.results?.length ?? 0,
+      request.results?.map((x) => x.salientObjects?.length ?? 0)
+    );
+
+    const rects: VK.CGRect[] = [];
 
     if (request.results) {
       const paths: string[] = [];
@@ -206,6 +231,9 @@ export default function App() {
         );
 
         if (observation.salientObjects) {
+          rects.push(
+            ...observation.salientObjects.map((obj) => obj.boundingBox)
+          );
           for (const obj of observation.salientObjects) {
             console.log('Object bounding box:', obj.boundingBox);
             const pathString = rectToSVGPath(obj.boundingBox);
@@ -217,6 +245,7 @@ export default function App() {
       console.log('Generated', paths.length, 'bounding box paths');
       setContourPaths(paths);
     }
+    return rects;
   };
 
   const renderMask = (index: number) => {
@@ -298,7 +327,14 @@ export default function App() {
         <Button title="Detect Contours" onPress={detectContours} />
         <Button title="Draw Mask Contour" onPress={detectMaskContours} />
         <Button title="Detect object rects" onPress={detectObjectRects} />
-        <Button title="Gen masks" onPress={generateMasks} />
+        <Button title="Gen masks" onPress={() => generateMasks()} />
+        <Button
+          title="Gen masks from object rects"
+          onPress={async () => {
+            const rects = await detectObjectRects();
+            generateMasks(rects);
+          }}
+        />
       </View>
     </View>
   );
