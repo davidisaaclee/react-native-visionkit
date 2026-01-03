@@ -115,6 +115,8 @@ class HybridVNInstanceMaskObservation: HybridVNInstanceMaskObservationSpec {
     self.value = value
   }
   
+  var confidence: Double { Double(value.confidence) }
+
   var instanceMask: any HybridCVPixelBufferSpec {
     HybridCVPixelBuffer.from(value.instanceMask)
   }
@@ -138,6 +140,11 @@ class HybridVNGenerateForegroundInstanceMaskRequestFactory: HybridVNGenerateFore
 class HybridVNGenerateForegroundInstanceMaskRequest: HybridVNGenerateForegroundInstanceMaskRequestSpec {
   fileprivate let request = VNGenerateForegroundInstanceMaskRequest()
   
+  var regionOfInterest: CGRect {
+    get { convert(request.regionOfInterest) }
+    set { request.regionOfInterest = convert(newValue) }
+  }
+
   var results: [any HybridVNInstanceMaskObservationSpec]? {
     request.results?.map { HybridVNInstanceMaskObservation.from($0) }
   }
@@ -151,14 +158,115 @@ class HybridVNImageRequestHandlerFactory: HybridVNImageRequestHandlerFactorySpec
 
 class HybridVNImageRequestHandler: HybridVNImageRequestHandlerSpec {
   fileprivate var value: VNImageRequestHandler!
-  
+
   static func from(_ value: VNImageRequestHandler) -> HybridVNImageRequestHandler {
     let out = HybridVNImageRequestHandler()
     out.value = value
     return out
   }
-  
-  func perform(requests: [any HybridVNGenerateForegroundInstanceMaskRequestSpec]) throws {
-    try value.perform((requests as! [HybridVNGenerateForegroundInstanceMaskRequest]).map(\.request))
+
+  func perform(requests: [any HybridVNImageBasedRequestSpec]) throws {
+    try value.perform(requests.compactMap { req in
+      if let req = req as? HybridVNDetectContoursRequest {
+        return req.request
+      } else if let req = req as? HybridVNGenerateForegroundInstanceMaskRequest {
+        return req.request
+      } else {
+        return nil
+      }
+    })
   }
+}
+
+class HybridVNDetectContoursRequestFactory: HybridVNDetectContoursRequestFactorySpec {
+  func create() throws -> any HybridVNDetectContoursRequestSpec {
+    HybridVNDetectContoursRequest()
+  }
+}
+
+class HybridVNDetectContoursRequest: HybridVNDetectContoursRequestSpec {
+  fileprivate let request = VNDetectContoursRequest()
+  
+  var contrastAdjustment: Double {
+    get { Double(request.contrastAdjustment) }
+    set { request.contrastAdjustment = Float(newValue) }
+  }
+
+  var constrastPivot: Double? {
+    get { request.contrastPivot.map { Double(truncating: $0) } }
+    set { request.contrastPivot = newValue.map { NSNumber(value: $0) } }
+  }
+
+  var detectsDarkOnLight: Bool {
+    get { request.detectsDarkOnLight }
+    set { request.detectsDarkOnLight = newValue }
+  }
+
+  var maximumImageDimension: Double {
+    get { Double(request.maximumImageDimension) }
+    set { request.maximumImageDimension = Int(newValue) }
+  }
+
+  var results: [any HybridVNContoursObservationSpec]? {
+    request.results?.map { HybridVNContoursObservation.from($0) }
+  }
+
+  var regionOfInterest: CGRect {
+    get { convert(request.regionOfInterest) }
+    set { request.regionOfInterest = convert(newValue) }
+  }
+}
+
+class HybridVNContoursObservation: HybridVNContoursObservationSpec {
+  fileprivate var value: VNContoursObservation!
+  static func from(_ value: VNContoursObservation) -> HybridVNContoursObservation {
+    let out = HybridVNContoursObservation()
+    out.value = value
+    return out
+  }
+  
+  var topLevelContours: [any HybridVNContourSpec] {
+    value.topLevelContours.map { HybridVNContour.from($0) }
+  }
+  
+  var contourCount: Double {
+    Double(value.contourCount)
+  }
+  
+  func contourAt(index: Double) throws -> any HybridVNContourSpec {
+    HybridVNContour.from(try value.contour(at: Int(index)))
+  }
+  
+  var confidence: Double { Double(value.confidence) }
+}
+
+class HybridVNContour: HybridVNContourSpec {
+  fileprivate var value: VNContour!
+  static func from(_ value: VNContour) -> HybridVNContour {
+    let out = HybridVNContour()
+    out.value = value
+    return out
+  }
+  
+  var pointCount: Double {
+    Double(value.pointCount)
+  }
+  
+  var normalizedPointsFlat: [Double] {
+    value.normalizedPoints.flatMap { [Double($0.x), Double($0.y)] }
+  }
+  
+  func polygonApproximation(epsilon: Double) throws -> any HybridVNContourSpec {
+    HybridVNContour.from(try value.polygonApproximation(epsilon: Float(epsilon)))
+  }
+  
+}
+
+
+private func convert(_ rect: CoreGraphics.CGRect) -> CGRect {
+  CGRect(rect.origin.x, rect.origin.y, rect.size.width, rect.size.height)
+}
+
+private func convert(_ rect: CGRect) -> CoreGraphics.CGRect {
+  .init(x: rect.x, y: rect.y, width: rect.width, height: rect.height)
 }

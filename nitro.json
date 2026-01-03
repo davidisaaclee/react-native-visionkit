@@ -31,6 +31,18 @@
     },
     "VNImageRequestHandler": {
       "swift": "HybridVNImageRequestHandler"
+    },
+    "VNDetectContoursRequestFactory": {
+      "swift": "HybridVNDetectContoursRequestFactory"
+    },
+    "VNDetectContoursRequest": {
+      "swift": "HybridVNDetectContoursRequest"
+    },
+    "VNContoursObservation": {
+      "swift": "HybridVNContoursObservation"
+    },
+    "VNContour": {
+      "swift": "HybridVNContour"
     }
   },
   "ignorePaths": ["node_modules"]

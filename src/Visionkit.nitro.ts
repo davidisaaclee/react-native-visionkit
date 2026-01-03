@@ -1,5 +1,12 @@
 import type { HybridObject } from 'react-native-nitro-modules';
 
+export interface CGRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
 export interface CIImage extends HybridObject<{ ios: 'swift' }> {
   writePngToFile(path: string): void;
 }
@@ -15,11 +22,18 @@ export interface CVPixelBuffer extends HybridObject<{ ios: 'swift' }> {
   toCIImage(): CIImage;
 }
 
-export interface VNInstanceMaskObservation
-  extends HybridObject<{ ios: 'swift' }> {
+export interface VNObservation extends HybridObject<{ ios: 'swift' }> {
+  readonly confidence: number;
+}
+
+export interface VNInstanceMaskObservation extends VNObservation {
   readonly instanceMask: CVPixelBuffer;
   readonly allInstances: number[];
   generateMaskForInstances(instanceIds: number[]): CVPixelBuffer;
+}
+
+export interface VNImageBasedRequest extends HybridObject<{ ios: 'swift' }> {
+  regionOfInterest: CGRect;
 }
 
 export interface VNGenerateForegroundInstanceMaskRequestFactory
@@ -28,7 +42,7 @@ export interface VNGenerateForegroundInstanceMaskRequestFactory
 }
 
 export interface VNGenerateForegroundInstanceMaskRequest
-  extends HybridObject<{ ios: 'swift' }> {
+  extends VNImageBasedRequest {
   readonly results?: VNInstanceMaskObservation[];
 }
 
@@ -38,5 +52,32 @@ export interface VNImageRequestHandlerFactory
 }
 
 export interface VNImageRequestHandler extends HybridObject<{ ios: 'swift' }> {
-  perform(requests: VNGenerateForegroundInstanceMaskRequest[]): void;
+  perform(requests: VNImageBasedRequest[]): void;
+}
+
+export interface VNDetectContoursRequestFactory
+  extends HybridObject<{ ios: 'swift' }> {
+  create(): VNDetectContoursRequest;
+}
+
+export interface VNDetectContoursRequest extends VNImageBasedRequest {
+  contrastAdjustment: number;
+  constrastPivot?: number;
+  detectsDarkOnLight: boolean;
+  /** https://developer.apple.com/documentation/vision/vndetectcontoursrequest/maximumimagedimension */
+  maximumImageDimension: number;
+  readonly results?: VNContoursObservation[];
+}
+
+export interface VNContoursObservation extends VNObservation {
+  readonly topLevelContours: VNContour[];
+  readonly contourCount: number;
+  contourAt(index: number): VNContour;
+}
+
+export interface VNContour extends HybridObject<{ ios: 'swift' }> {
+  readonly pointCount: number;
+  /** Flattened array of simd_float2 { x1, y1, x2, y2, ... } */
+  readonly normalizedPointsFlat: number[];
+  polygonApproximation(epsilon: number): VNContour;
 }

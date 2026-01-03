@@ -11,3 +11,9 @@ export const VNImageRequestHandler =
   NitroModules.createHybridObject<spec.VNImageRequestHandlerFactory>(
     'VNImageRequestHandlerFactory'
   );
+export const VNDetectContoursRequest =
+  NitroModules.createHybridObject<spec.VNDetectContoursRequestFactory>(
+    'VNDetectContoursRequestFactory'
+  );
+
+export type * from './Visionkit.nitro';
