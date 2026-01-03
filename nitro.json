@@ -8,9 +8,17 @@
     "androidCxxLibName": "visionkit"
   },
   "autolinking": {
-    "Visionkit": {
-      "swift": "Visionkit",
-      "kotlin": "Visionkit"
+    "CIImage": {
+      "swift": "HybridCIImage"
+    },
+    "CIImageFactory": {
+      "swift": "HybridCIImageFactory"
+    },
+    "CVPixelBuffer": {
+      "swift": "HybridCVPixelBuffer"
+    },
+    "VNInstanceMaskObservation": {
+      "swift": "HybridVNInstanceMaskObservation"
     }
   },
   "ignorePaths": ["node_modules"]
