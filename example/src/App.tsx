@@ -33,6 +33,19 @@ const contourToSVGPath = (contour: VK.VNContour): string => {
   return path;
 };
 
+const rectToSVGPath = (rect: VK.CGRect): string => {
+  // Vision coordinates are normalized (0-1) with origin at bottom-left
+  // Convert to screen coordinates with origin at top-left
+  const x = rect.x * SCREEN_WIDTH;
+  const y = (1 - rect.y - rect.height) * SCREEN_HEIGHT;
+  const width = rect.width * SCREEN_WIDTH;
+  const height = rect.height * SCREEN_HEIGHT;
+
+  return `M ${x} ${y} L ${x + width} ${y} L ${x + width} ${y + height} L ${x} ${
+    y + height
+  } Z`;
+};
+
 async function writeAssetToFile(asset: any, path: string): Promise<void> {
   const { promise } = fs.downloadFile({
     fromUrl: Image.resolveAssetSource(asset)!.uri,
@@ -167,6 +180,45 @@ export default function App() {
     setContourPaths(allPaths);
   };
 
+  const detectObjectRects = async () => {
+    const basePath = newTmpPath();
+    await writeAssetToFile(targetAsset, basePath);
+
+    console.log('Detecting object rects...');
+    const start = Date.now();
+
+    const ciImage = new VK.CIImage(basePath);
+
+    const request = new VK.VNGenerateObjectnessBasedSaliencyImageRequest();
+    const handler = new VK.VNImageRequestHandler(ciImage);
+    handler.perform([request]);
+
+    console.log(Date.now() - start, 'Object rect detection');
+
+    if (request.results) {
+      const paths: string[] = [];
+
+      for (const observation of request.results) {
+        console.log('Saliency observation confidence:', observation.confidence);
+        console.log(
+          'Salient objects:',
+          observation.salientObjects?.length ?? 0
+        );
+
+        if (observation.salientObjects) {
+          for (const obj of observation.salientObjects) {
+            console.log('Object bounding box:', obj.boundingBox);
+            const pathString = rectToSVGPath(obj.boundingBox);
+            paths.push(pathString);
+          }
+        }
+      }
+
+      console.log('Generated', paths.length, 'bounding box paths');
+      setContourPaths(paths);
+    }
+  };
+
   const renderMask = (index: number) => {
     if (index < 0 || index >= imageSet.length) return;
     if (maskObservation == null) return;
@@ -245,6 +297,7 @@ export default function App() {
         )}
         <Button title="Detect Contours" onPress={detectContours} />
         <Button title="Draw Mask Contour" onPress={detectMaskContours} />
+        <Button title="Detect object rects" onPress={detectObjectRects} />
         <Button title="Gen masks" onPress={generateMasks} />
       </View>
     </View>
