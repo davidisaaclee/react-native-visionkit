@@ -1,130 +1,214 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { View, StyleSheet, Image, Button, Dimensions } from 'react-native';
 import * as fs from 'react-native-fs';
 import * as VK from 'react-native-visionkit';
 import { Canvas, Path, Skia } from '@shopify/react-native-skia';
+import Slider from '@react-native-community/slider';
 
-const FILE_PATH = fs.TemporaryDirectoryPath + '/symbols.png';
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-const targetAsset = require('./worms.png');
+const targetAsset = require('./gnome.jpg');
+// const targetAsset = require('./game-mag.png');
+
+function newTmpPath(): string {
+  return fs.TemporaryDirectoryPath + `/img_${Date.now()}.png`;
+}
+
+const contourToSVGPath = (contour: VK.VNContour): string => {
+  const points = contour.normalizedPointsFlat;
+  if (points.length < 2) return '';
+
+  // Vision coordinates are normalized (0-1) with origin at bottom-left
+  // Convert to screen coordinates with origin at top-left
+  let path = `M ${points[0]! * SCREEN_WIDTH} ${
+    (1 - points[1]!) * SCREEN_HEIGHT
+  }`;
+
+  for (let i = 2; i < points.length; i += 2) {
+    path += ` L ${points[i]! * SCREEN_WIDTH} ${
+      (1 - points[i + 1]!) * SCREEN_HEIGHT
+    }`;
+  }
+
+  path += ' Z';
+  return path;
+};
+
+async function writeAssetToFile(asset: any, path: string): Promise<void> {
+  const { promise } = fs.downloadFile({
+    fromUrl: Image.resolveAssetSource(asset)!.uri,
+    // fromUrl: Image.resolveAssetSource(require('./doggie.jpg'))!.uri,
+    toFile: path,
+  });
+  await promise;
+}
 
 export default function App() {
-  const [fromCIImage, setFromCIImage] = useState<string | null>(null);
+  const [imageSet, setImageSet] = useState<string[]>([]);
+  const [maskObservation, setMaskObservation] =
+    useState<VK.VNInstanceMaskObservation | null>(null);
+  const imageHandlerRef = useRef<VK.VNImageRequestHandler | null>(null);
   const [contourPaths, setContourPaths] = useState<string[]>([]);
 
-  useEffect(() => {
-    (async () => {
-      const { promise } = fs.downloadFile({
-        fromUrl: Image.resolveAssetSource(targetAsset)!.uri,
-        // fromUrl: Image.resolveAssetSource(require('./doggie.jpg'))!.uri,
-        toFile: FILE_PATH,
-      });
-
-      await promise;
-
-      let start = Date.now();
-      const ciImage = VK.CIImage.createFromFile(FILE_PATH);
-      const ciImageOutput = fs.TemporaryDirectoryPath + 'ciImage.png';
-
-      console.log(Date.now() - start, 'Create CIImage');
-      start = Date.now();
-
-      const req = VK.VNGenerateForegroundInstanceMaskRequest.create();
-      const handler = VK.VNImageRequestHandler.createWithCIImage(ciImage);
-
-      console.log(Date.now() - start, 'Create handler');
-      start = Date.now();
-
-      handler.perform([req]);
-      const masks = req.results;
-      if (masks == null) {
-        console.log('No masks generated');
-        return;
-      }
-
-      console.log('mask count:', masks.length);
-      console.log(
-        'allInstances',
-        masks.map((m) => m.allInstances)
-      );
-      console.log(Date.now() - start, 'Generate mask');
-
-      const mask = masks.at(0);
-      if (mask) {
-        mask
-          .generateMaskForInstances(mask.allInstances)
-          .toCIImage()
-          .writePngToFile(ciImageOutput);
-        setFromCIImage(ciImageOutput);
-        console.log('wrote mask to file');
-      }
-    })();
-  }, []);
-
   const detectContours = async () => {
-    console.log('Detecting contours...');
-    const start = Date.now();
+    const basePath = newTmpPath();
+    await writeAssetToFile(targetAsset, basePath);
 
-    const ciImage = VK.CIImage.createFromFile(FILE_PATH);
+    const baseImage = VK.CIImageFactory.createFromFile(basePath);
 
-    const request = VK.VNDetectContoursRequest.create();
-    request.contrastAdjustment = 1.0;
-    request.detectsDarkOnLight = true;
+    const contoursReq = VK.VNDetectContoursRequestFactory.create();
+    contoursReq.contrastAdjustment = 2.0;
+    // contoursReq.detectsDarkOnLight = false;
 
-    const handler = VK.VNImageRequestHandler.createWithCIImage(ciImage);
-    handler.perform([request]);
+    const contoursHandler =
+      VK.VNImageRequestHandlerFactory.createWithCIImage(baseImage);
+    contoursHandler.perform([contoursReq]);
+    const contourResult = contoursReq.results?.at(0);
+    if (contourResult == null) {
+      console.log('no contours detected');
+      return;
+    }
+    setContourPaths(
+      contourResult.topLevelContours.map((c) => contourToSVGPath(c))
+    );
+  };
 
-    console.log(Date.now() - start, 'Contour detection');
+  const generateMasks = async () => {
+    const basePath = newTmpPath();
+    await writeAssetToFile(targetAsset, basePath);
 
-    if (request.results) {
-      const paths: string[] = [];
+    const base = VK.CIImageFactory.createFromFile(basePath);
 
-      for (const observation of request.results) {
-        console.log('Contour observation confidence:', observation.confidence);
+    // Generate foreground masks
+    const maskReq = VK.VNGenerateForegroundInstanceMaskRequestFactory.create();
+    const handler = VK.VNImageRequestHandlerFactory.createWithCIImage(base);
+    handler.perform([maskReq]);
+
+    const masks = maskReq.results;
+    if (!masks || masks.length === 0) {
+      console.log('No masks generated');
+      return;
+    }
+    console.log('Generated masks:', masks.length);
+
+    const mask = masks.at(0)!;
+    console.log('mask instances:', mask.allInstances);
+
+    const maskImages: string[] = [];
+    for (const id of mask.allInstances) {
+      const maskPath = newTmpPath();
+      const maskBuffer = mask.generateMaskForInstances([id]);
+      maskBuffer.toCIImage().writePngToFile(maskPath);
+      maskImages.push(maskPath);
+    }
+    imageHandlerRef.current = handler;
+    setMaskObservation(mask);
+    setImageSet(maskImages);
+  };
+
+  const detectMaskContours = async () => {
+    const basePath = newTmpPath();
+    await writeAssetToFile(targetAsset, basePath);
+
+    console.log('Detecting mask contours...');
+
+    const ciImage = VK.CIImageFactory.createFromFile(basePath);
+    const baseImagePath = newTmpPath();
+    ciImage.writePngToFile(baseImagePath);
+    // setFromCIImage(baseImagePath);
+
+    // Generate foreground masks
+    const maskReq = VK.VNGenerateForegroundInstanceMaskRequestFactory.create();
+    const handler = VK.VNImageRequestHandlerFactory.createWithCIImage(ciImage);
+    handler.perform([maskReq]);
+
+    const masks = maskReq.results;
+    if (!masks || masks.length === 0) {
+      console.log('No masks generated');
+      return;
+    }
+
+    const maskPath = newTmpPath();
+    const mask = masks[0]!;
+    const maskImage = mask
+      .generateMaskForInstances(mask.allInstances)
+      .toCIImage();
+
+    maskImage.writePngToFile(maskPath);
+    console.log('Wrote mask to', maskPath);
+    setImageSet([maskPath]);
+
+    const allPaths: string[] = [];
+    const contourReq = VK.VNDetectContoursRequestFactory.create();
+    // contourReq.maximumImageDimension = 9999999999;
+    // contourReq.contrastAdjustment = 1.0;
+    // contourReq.detectsDarkOnLight = true;
+    // contourReq.detectsDarkOnLight = false;
+
+    const contourHandler =
+      VK.VNImageRequestHandlerFactory.createWithCIImage(maskImage);
+    contourHandler.perform([contourReq]);
+
+    if (contourReq.results) {
+      for (const observation of contourReq.results) {
+        console.log(
+          'Mask contour observation confidence:',
+          observation.confidence
+        );
         console.log('Top level contours:', observation.topLevelContours.length);
+        console.log('All contours:', observation.contourCount);
 
         for (const contour of observation.topLevelContours) {
           const pathString = contourToSVGPath(contour);
-          paths.push(pathString);
+          allPaths.push(pathString);
         }
       }
-
-      console.log('Generated', paths.length, 'contour paths');
-      setContourPaths(paths);
     }
+    console.log('Set paths', allPaths.length);
+    setContourPaths(allPaths);
   };
 
-  const contourToSVGPath = (contour: VK.VNContour): string => {
-    const points = contour.normalizedPointsFlat;
-    if (points.length < 2) return '';
+  const renderMask = (index: number) => {
+    if (index < 0 || index >= imageSet.length) return;
+    if (maskObservation == null) return;
+    if (imageHandlerRef.current == null) return;
+    const maskImage = maskObservation
+      .generateMaskedImage({
+        ofInstances: [maskObservation.allInstances[index]!],
+        from: imageHandlerRef.current,
+        croppedToInstancesExtent: true,
+      })
+      .toCIImage();
 
-    // Vision coordinates are normalized (0-1) with origin at bottom-left
-    // Convert to screen coordinates with origin at top-left
-    let path = `M ${points[0] * SCREEN_WIDTH} ${
-      (1 - points[1]) * SCREEN_HEIGHT
-    }`;
-
-    for (let i = 2; i < points.length; i += 2) {
-      path += ` L ${points[i] * SCREEN_WIDTH} ${
-        (1 - points[i + 1]) * SCREEN_HEIGHT
-      }`;
-    }
-
-    path += ' Z';
-    return path;
+    const imgPath = newTmpPath();
+    maskImage.writePngToFile(imgPath);
+    const newImageSet = [...imageSet];
+    newImageSet[index] = imgPath;
+    setImageSet(newImageSet);
   };
+
+  const [counter, setCounter] = useState(0);
+  // useEffect(() => {
+  //   const interval = setInterval(() => {
+  //     setCounter((c) => c + 1);
+  //   }, 800);
+  //   return () => clearInterval(interval);
+  // }, []);
+  const displayedImage =
+    imageSet.length === 0 ? null : imageSet[counter % imageSet.length];
 
   return (
     <View style={styles.container}>
-      <Image
-        source={targetAsset}
-        style={{
-          width: '100%',
-          height: '100%',
-          position: 'absolute',
-        }}
-        resizeMode="contain"
-      />
+      {displayedImage != null && (
+        <Image
+          source={{ uri: displayedImage }}
+          style={{
+            width: '100%',
+            height: '100%',
+            position: 'absolute',
+          }}
+          resizeMode="contain"
+        />
+      )}
 
       <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
         {contourPaths.map((pathStr, index) => {
@@ -142,7 +226,26 @@ export default function App() {
       </Canvas>
 
       <View style={styles.buttonContainer}>
+        {imageSet.length > 0 && (
+          <>
+            <Slider
+              value={1}
+              minimumValue={0}
+              maximumValue={imageSet.length - 1}
+              step={1}
+              onValueChange={(val) => setCounter(val)}
+            />
+            <Button
+              title="Render mask"
+              onPress={() => {
+                renderMask(counter % imageSet.length);
+              }}
+            />
+          </>
+        )}
         <Button title="Detect Contours" onPress={detectContours} />
+        <Button title="Draw Mask Contour" onPress={detectMaskContours} />
+        <Button title="Gen masks" onPress={generateMasks} />
       </View>
     </View>
   );
@@ -155,6 +258,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   buttonContainer: {
+    gap: 10,
     position: 'absolute',
     bottom: 50,
     alignSelf: 'center',

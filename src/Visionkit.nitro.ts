@@ -26,10 +26,17 @@ export interface VNObservation extends HybridObject<{ ios: 'swift' }> {
   readonly confidence: number;
 }
 
+interface GenerateMaskedImageOptions {
+  ofInstances: number[];
+  from: VNImageRequestHandler;
+  croppedToInstancesExtent: boolean;
+}
+
 export interface VNInstanceMaskObservation extends VNObservation {
   readonly instanceMask: CVPixelBuffer;
   readonly allInstances: number[];
   generateMaskForInstances(instanceIds: number[]): CVPixelBuffer;
+  generateMaskedImage(opts: GenerateMaskedImageOptions): CVPixelBuffer;
 }
 
 export interface VNImageBasedRequest extends HybridObject<{ ios: 'swift' }> {

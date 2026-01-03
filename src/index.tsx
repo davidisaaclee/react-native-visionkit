@@ -1,17 +1,17 @@
 import { NitroModules } from 'react-native-nitro-modules';
 import type * as spec from './Visionkit.nitro';
 
-export const CIImage =
+export const CIImageFactory =
   NitroModules.createHybridObject<spec.CIImageFactory>('CIImageFactory');
-export const VNGenerateForegroundInstanceMaskRequest =
+export const VNGenerateForegroundInstanceMaskRequestFactory =
   NitroModules.createHybridObject<spec.VNGenerateForegroundInstanceMaskRequestFactory>(
     'VNGenerateForegroundInstanceMaskRequestFactory'
   );
-export const VNImageRequestHandler =
+export const VNImageRequestHandlerFactory =
   NitroModules.createHybridObject<spec.VNImageRequestHandlerFactory>(
     'VNImageRequestHandlerFactory'
   );
-export const VNDetectContoursRequest =
+export const VNDetectContoursRequestFactory =
   NitroModules.createHybridObject<spec.VNDetectContoursRequestFactory>(
     'VNDetectContoursRequestFactory'
   );
