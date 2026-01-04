@@ -195,7 +195,7 @@ export default function App() {
     setContourPaths(allPaths);
   };
 
-  const detectObjectRects = async () => {
+  const detectRects = async (requestType: 'object' | 'attention') => {
     const basePath = newTmpPath();
     await writeAssetToFile(targetAsset, basePath);
 
@@ -206,7 +206,10 @@ export default function App() {
 
     const ciImage = new VK.CIImage(basePath);
 
-    const request = new VK.VNGenerateObjectnessBasedSaliencyImageRequest();
+    const request =
+      requestType === 'object'
+        ? new VK.VNGenerateObjectnessBasedSaliencyImageRequest()
+        : new VK.VNGenerateAttentionBasedSaliencyImageRequest();
     const handler = new VK.VNImageRequestHandler(ciImage);
     handler.perform([request]);
 
@@ -247,6 +250,9 @@ export default function App() {
     }
     return rects;
   };
+
+  const detectObjectRects = () => detectRects('object');
+  const detectAttentionRects = () => detectRects('attention');
 
   const renderMask = (index: number) => {
     if (index < 0 || index >= imageSet.length) return;
@@ -326,7 +332,14 @@ export default function App() {
         )}
         <Button title="Detect Contours" onPress={detectContours} />
         <Button title="Draw Mask Contour" onPress={detectMaskContours} />
-        <Button title="Detect object rects" onPress={detectObjectRects} />
+        <Button
+          title="VNGenerateObjectnessBasedSaliencyImageRequest"
+          onPress={detectObjectRects}
+        />
+        <Button
+          title="VNGenerateAttentionBasedSaliencyImageRequest"
+          onPress={detectAttentionRects}
+        />
         <Button title="Gen masks" onPress={() => generateMasks()} />
         <Button
           title="Gen masks from object rects"
